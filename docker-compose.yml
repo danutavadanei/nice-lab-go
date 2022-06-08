@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+      target: production
+    environment:
+      - AWS_ENDPOINT=http://localstack:4566
+    ports:
+      - "127.0.0.1:8080:8080"
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      target: production
+    ports:
+      - "127.0.0.1:8000:80"
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "127.0.0.1:4510-4559:4510-4559" 
+      - "127.0.0.1:4566:4566"
+    environment:
+      - DEBUG=${DEBUG-}
+      - DATA_DIR=${DATA_DIR-}
+      - LAMBDA_EXECUTOR=${LAMBDA_EXECUTOR-}
+      - HOST_TMP_FOLDER=${TMPDIR:-/tmp/}localstack
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "${TMPDIR:-/tmp}/localstack:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"

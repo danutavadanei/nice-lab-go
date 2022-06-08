@@ -1,0 +1,45 @@
+name: Go
+
+env:
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+  AWS_DEFAULT_REGION: us-east-1
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      localstack:
+        image: localstack/localstack
+        env:
+          DATA_DIR: /tmp/localstack/data
+        ports: ["4566:4566"]
+        
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.18.1
+
+    - name: Configure localstack
+      run: |
+        aws s3 mb s3://sample-bucket-1 --endpoint-url=http://localhost:4566
+        aws s3 mb s3://sample-bucket-2 --endpoint-url=http://localhost:4566
+        aws s3 mb s3://sample-bucket-3 --endpoint-url=http://localhost:4566
+      
+    - name: Build
+      working-directory: ./app
+      run: go build -v ./...
+
+      
+    - name: Test
+      working-directory: ./app
+      run: go test -v ./...
