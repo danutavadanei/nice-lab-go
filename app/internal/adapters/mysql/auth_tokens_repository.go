@@ -29,6 +29,27 @@ func (rep AuthTokenRepository) GetUserByAuthToken(ctx context.Context, token str
 	return rep.userRep.GetUserById(ctx, userId)
 }
 
+func (rep AuthTokenRepository) ListTokenUsers(ctx context.Context) (map[string]User, error) {
+	tokenUsers := make(map[string]User)
+	qry := `SELECT token, user_id FROM auth_tokens WHERE expire_at > NOW()`
+
+	var tokens []struct {
+		Token  string `db:"token"`
+		UserID uint64 `db:"user_id"`
+	}
+
+	if err := rep.db.SelectContext(ctx, &tokens, qry); err != nil {
+		return nil, err
+	}
+
+	for _, token := range tokens {
+		user, _ := rep.userRep.GetUserById(ctx, token.UserID)
+		tokenUsers[token.Token] = user
+	}
+
+	return tokenUsers, nil
+}
+
 func (rep AuthTokenRepository) NewTokenForUserId(ctx context.Context, id uint64) (token string, err error) {
 	tx, err := rep.db.Beginx()
 

@@ -6,6 +6,7 @@ import (
 	"github.com/danutavadanei/nice-lab-go/internal/adapters/mysql"
 	"github.com/danutavadanei/nice-lab-go/internal/config"
 	"github.com/danutavadanei/nice-lab-go/internal/server"
+	"github.com/danutavadanei/nice-lab-go/internal/server/middleware"
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 	"log"
@@ -28,38 +29,20 @@ func main() {
 	labRep := mysql.NewLabRepository(db)
 	sessionRep := mysql.NewSessionRepository(db, userRep, labRep)
 	authTokenRep := mysql.NewAuthTokenRepository(db, userRep)
+	tokenUsers, err := authTokenRep.ListTokenUsers(context.Background())
+	if err != nil {
+		panic(err)
+	}
+	authMiddleware := middleware.NewAuthenticationMiddleware(tokenUsers, authTokenRep)
 
 	if err != nil {
 		panic(err)
 	}
 
 	m := mux.NewRouter()
-
 	m.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("ok"))
 	}).Methods("GET").Name("health")
-
-	m.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
-		users, err := userRep.ListUsers(r.Context())
-
-		if err != nil {
-			log.Printf("error listing users:  %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		bytes, err := json.Marshal(users)
-
-		if err != nil {
-			log.Printf("error marshaling users:  %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write(bytes)
-	}).Methods("GET").Name("listUsers")
-
 	m.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 
@@ -109,7 +92,29 @@ func main() {
 		_, _ = w.Write(bytes)
 	}).Methods("POST").Name("login")
 
-	m.HandleFunc("/labs", func(w http.ResponseWriter, r *http.Request) {
+	a := m.PathPrefix("/").Subrouter()
+	a.Use(authMiddleware.Middleware)
+	a.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
+		users, err := userRep.ListUsers(r.Context())
+
+		if err != nil {
+			log.Printf("error listing users:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		bytes, err := json.Marshal(users)
+
+		if err != nil {
+			log.Printf("error marshaling users:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(bytes)
+	}).Methods("GET").Name("listUsers")
+	a.HandleFunc("/labs", func(w http.ResponseWriter, r *http.Request) {
 		labs, err := labRep.ListLabs(r.Context())
 
 		if err != nil {
@@ -129,8 +134,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(bytes)
 	}).Methods("GET").Name("listLabs")
-
-	m.HandleFunc("/sessions", func(w http.ResponseWriter, r *http.Request) {
+	a.HandleFunc("/sessions", func(w http.ResponseWriter, r *http.Request) {
 		sessions, err := sessionRep.ListSessions(r.Context())
 
 		if err != nil {
