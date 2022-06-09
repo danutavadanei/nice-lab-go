@@ -1,8 +1,8 @@
 package middleware
 
 import (
+	"context"
 	"github.com/danutavadanei/nice-lab-go/internal/adapters/mysql"
-	"log"
 	"net/http"
 )
 
@@ -26,15 +26,14 @@ func (amw *AuthenticationMiddleware) Middleware(next http.Handler) http.Handler 
 		token := r.Header.Get("X-Session-Token")
 
 		if user, found := amw.tokenUsers[token]; found {
-			log.Printf("Authenticated user %d\n", user.ID)
-
+			r = r.WithContext(context.WithValue(r.Context(), "user", user))
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		if user, err := amw.authRep.GetUserByAuthToken(r.Context(), token); err == nil {
 			amw.tokenUsers[token] = user
-			log.Printf("Authenticated user %d\n", user.ID)
+			r = r.WithContext(context.WithValue(r.Context(), "user", user))
 			next.ServeHTTP(w, r)
 
 			return
