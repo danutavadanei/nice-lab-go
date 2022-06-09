@@ -1,0 +1,6 @@
+.env
+/web/node_modules
+/web/dist
+/web/.env
+/.idea
+aws-utm.pem
