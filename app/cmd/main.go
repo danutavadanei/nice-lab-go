@@ -25,6 +25,8 @@ func main() {
 
 	db, err := mysql.NewConnection(cfg.MySQLConfig)
 	userRep := mysql.NewUserRepository(db)
+	labRep := mysql.NewLabRepository(db)
+	sessionRep := mysql.NewSessionRepository(db, userRep, labRep)
 
 	if err != nil {
 		panic(err)
@@ -92,6 +94,47 @@ func main() {
 		_, _ = w.Write(bytes)
 	}).Methods("POST").Name("login")
 
+	m.HandleFunc("/labs", func(w http.ResponseWriter, r *http.Request) {
+		labs, err := labRep.ListLabs(r.Context())
+
+		if err != nil {
+			log.Printf("error listing labs:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		bytes, err := json.Marshal(labs)
+
+		if err != nil {
+			log.Printf("error marshaling labs:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(bytes)
+	}).Methods("GET").Name("listLabs")
+
+	m.HandleFunc("/sessions", func(w http.ResponseWriter, r *http.Request) {
+		sessions, err := sessionRep.ListSessions(r.Context())
+
+		if err != nil {
+			log.Printf("error listing sessions:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		bytes, err := json.Marshal(sessions)
+
+		if err != nil {
+			log.Printf("error marshaling sessions:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(bytes)
+	}).Methods("GET").Name("listSessions")
 	/*
 		m.HandleFunc("/s3/buckets/{bucket}", func(w http.ResponseWriter, r *http.Request) {
 			vars := mux.Vars(r)
