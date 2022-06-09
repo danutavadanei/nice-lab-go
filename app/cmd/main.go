@@ -27,6 +27,7 @@ func main() {
 	userRep := mysql.NewUserRepository(db)
 	labRep := mysql.NewLabRepository(db)
 	sessionRep := mysql.NewSessionRepository(db, userRep, labRep)
+	//authTokenRep := mysql.NewAuthTokenRepository(db, userRep)
 
 	if err != nil {
 		panic(err)

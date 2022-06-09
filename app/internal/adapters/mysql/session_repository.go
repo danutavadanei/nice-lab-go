@@ -24,7 +24,11 @@ type SessionRepository struct {
 }
 
 func NewSessionRepository(db *sqlx.DB, userRep *UserRepository, labRep *LabRepository) *SessionRepository {
-	return &SessionRepository{db, userRep, labRep}
+	return &SessionRepository{
+		db:      db,
+		userRep: userRep,
+		labRep:  labRep,
+	}
 }
 
 func (rep SessionRepository) ListSessions(ctx context.Context) (sessions []Session, err error) {
