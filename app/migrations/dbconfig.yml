@@ -1,0 +1,9 @@
+development:
+  dialect: mysql
+  datasource: ${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_NET}(${MYSQL_ADDR})/${MYSQL_DATABASE}?parseTime=true
+  dir: migrations
+
+docker:
+  dialect: mysql
+  datasource: ${MYSQL_USER}:${MYSQL_PASSWORD}@${MYSQL_NET}(${MYSQL_ADDR})/${MYSQL_DATABASE}?parseTime=true
+  dir: migrations

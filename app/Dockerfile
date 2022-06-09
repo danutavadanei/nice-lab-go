@@ -15,11 +15,15 @@ WORKDIR ${APP_PATH}
 
 FROM base as build
 
+RUN go install -mod=readonly github.com/rubenv/sql-migrate/...@latest
+
 RUN go build -a -mod readonly -o app cmd/main.go && \
     chmod +x app
 
 FROM gcr.io/distroless/base-debian10 as production
 
+COPY --from=build /usr/go/bin/sql-migrate /
+COPY --from=build /var/app/migrations /migrations
 COPY --from=build /var/app/app /
 
 USER nobody

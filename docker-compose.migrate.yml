@@ -1,0 +1,22 @@
+version: "3.8"
+
+networks:
+  app-network:
+    driver: bridge
+
+services:
+  migration:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+      target: build
+    working_dir: /
+    networks:
+      - app-network
+    env_file:
+      - .env
+    depends_on:
+      - db
+    volumes:
+      - ./app/migrations:/migrations
+    command: [ "/bin/bash", "-c", "--", "while true; do sleep 30; done;" ]

@@ -1,5 +1,11 @@
 version: "3.8"
 
+networks:
+  app-network:
+    driver: bridge
+volumes:
+  db_data: {}
+
 services:
   app:
     build:
@@ -10,6 +16,8 @@ services:
       - AWS_ENDPOINT=http://localstack:4566
     ports:
       - "127.0.0.1:8080:8080"
+    networks:
+      - app-network
   web:
     build:
       context: .
@@ -17,6 +25,17 @@ services:
       target: production
     ports:
       - "127.0.0.1:8000:80"
+    networks:
+      - app-network
+  db:
+    image: mariadb:10.8
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    networks:
+      - app-network
   localstack:
     image: localstack/localstack
     ports:
@@ -31,3 +50,5 @@ services:
     volumes:
       - "${TMPDIR:-/tmp}/localstack:/tmp/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - app-network
