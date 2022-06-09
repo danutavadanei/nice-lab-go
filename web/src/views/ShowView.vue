@@ -74,7 +74,7 @@
 </template>
 
 <script setup>
-import { reactive, inject, onMounted, ref } from 'vue'
+import { inject, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
