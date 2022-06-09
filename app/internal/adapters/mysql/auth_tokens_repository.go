@@ -2,6 +2,9 @@ package mysql
 
 import (
 	"context"
+	"time"
+
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -24,4 +27,34 @@ func (rep AuthTokenRepository) GetUserByAuthToken(ctx context.Context, token str
 	}
 
 	return rep.userRep.GetUserById(ctx, userId)
+}
+
+func (rep AuthTokenRepository) NewTokenForUserId(ctx context.Context, id uint64) (token string, err error) {
+	tx, err := rep.db.Beginx()
+
+	qry := `DELETE FROM auth_tokens WHERE user_id = ?`
+	if _, err = rep.db.ExecContext(ctx, qry, id); err != nil {
+		return
+	}
+
+	qry = `INSERT INTO auth_tokens (user_id, token, expire_at) VALUES (?, ?, ?)`
+	qry = tx.Rebind(qry)
+
+	var u uuid.UUID
+	if u, err = uuid.NewUUID(); err != nil {
+		return
+	}
+
+	token = u.String()
+
+	if _, err = tx.ExecContext(ctx, qry, id, token, time.Now().Add(24*time.Hour)); err != nil {
+		return "", err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return "", err
+	}
+
+	return
 }

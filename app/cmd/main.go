@@ -27,7 +27,7 @@ func main() {
 	userRep := mysql.NewUserRepository(db)
 	labRep := mysql.NewLabRepository(db)
 	sessionRep := mysql.NewSessionRepository(db, userRep, labRep)
-	//authTokenRep := mysql.NewAuthTokenRepository(db, userRep)
+	authTokenRep := mysql.NewAuthTokenRepository(db, userRep)
 
 	if err != nil {
 		panic(err)
@@ -84,7 +84,21 @@ func main() {
 			return
 		}
 
-		bytes, err := json.Marshal(user)
+		token, err := authTokenRep.NewTokenForUserId(r.Context(), user.ID)
+
+		if err != nil {
+			log.Printf("error generating auth token:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		bytes, err := json.Marshal(struct {
+			User  mysql.User `json:"user"`
+			Token string     `json:"token"`
+		}{
+			User:  user,
+			Token: token,
+		})
 
 		if err != nil {
 			log.Printf("error parsing form:  %v", err)
