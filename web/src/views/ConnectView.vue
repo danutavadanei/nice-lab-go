@@ -17,14 +17,15 @@ import { useRoute } from 'vue-router'
 import dcv from '../../public/vendor/dcvjs/dcv.js'
 
 const route = useRoute()
-const lab = route.params.lab
+const lab = parseInt(route.params.lab)
+
 
 let auth, connection, serverUrl;
 console.log("Using NICE DCV Web Client SDK version " + dcv.version.versionStr);
 
 const onPromptCredentials = function (auth, challenge) {
   if (challengeHasField(challenge, "username") && challengeHasField(challenge, "password")) {
-    auth.sendCredentials({username: "ubuntu", password: "rAdiC203094=0"})
+    auth.sendCredentials({username: (lab === 1 ? "administrator" : "ubuntu"), password: "rAdiC203094=0"})
   } else {
     console.log(challenge)
   }
@@ -67,7 +68,11 @@ const connect = function (sessionId, authToken) {
 const main = function () {
   console.log("Setting log level to INFO");
   dcv.setLogLevel(dcv.LogLevel.INFO);
-  serverUrl = "https://ec2-44-203-45-241.compute-1.amazonaws.com:8443/";
+  if (lab === 1) {
+    serverUrl = "https://ec2-3-94-101-59.compute-1.amazonaws.com:8443/";
+  } else if (lab === 2) {
+    serverUrl = "https://ec2-44-203-45-241.compute-1.amazonaws.com:8443/";
+  }
 
   console.log("Starting authentication with", serverUrl);
 

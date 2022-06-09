@@ -2,16 +2,16 @@ package main
 
 import (
 	"context"
-	"github.com/danutavadanei/localstack-go-playground/internal/adapters/aws"
-	"github.com/danutavadanei/localstack-go-playground/internal/config"
-	"github.com/danutavadanei/localstack-go-playground/internal/server"
+	"encoding/json"
+	"github.com/danutavadanei/nice-lab-go/internal/adapters/mysql"
+	"github.com/danutavadanei/nice-lab-go/internal/config"
+	"github.com/danutavadanei/nice-lab-go/internal/server"
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 )
 
@@ -23,81 +23,136 @@ func main() {
 
 	cfg := config.NewAppConfig(v)
 
-	awsClient := aws.NewClient(cfg.AWSConfig)
+	db, err := mysql.NewConnection(cfg.MySQLConfig)
+	userRep := mysql.NewUserRepository(db)
+
+	if err != nil {
+		panic(err)
+	}
 
 	m := mux.NewRouter()
 
-	m.HandleFunc("/s3/buckets", func(w http.ResponseWriter, r *http.Request) {
-		bytes, err := awsClient.ListBuckets(r.Context())
+	m.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("ok"))
+	}).Methods("GET").Name("health")
+
+	m.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
+		users, err := userRep.ListUsers(r.Context())
 
 		if err != nil {
+			log.Printf("error listing users:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		bytes, err := json.Marshal(users)
+
+		if err != nil {
+			log.Printf("error marshaling users:  %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(bytes)
-	}).Methods("GET").Name("listBuckets")
+	}).Methods("GET").Name("listUsers")
 
-	m.HandleFunc("/s3/buckets/{bucket}", func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		bucket := vars["bucket"]
-
-		bytes, err := awsClient.ListBucketObjects(r.Context(), &bucket)
+	m.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		err := r.ParseForm()
 
 		if err != nil {
+			log.Printf("error parsing form:  %v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		email, password := r.FormValue("email"), r.FormValue("password")
+
+		if err := userRep.CheckUserPassword(r.Context(), email, password); err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		user, err := userRep.GetUserByEmail(r.Context(), email)
+
+		if err != nil {
+			log.Printf("error parsing form:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		bytes, err := json.Marshal(user)
+
+		if err != nil {
+			log.Printf("error parsing form:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		_, _ = w.Write(bytes)
-	}).Methods("GET").Name("listBucketObjects")
+	}).Methods("POST").Name("login")
 
-	m.HandleFunc("/s3/buckets/{bucket}", func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		bucket := vars["bucket"]
+	/*
+		m.HandleFunc("/s3/buckets/{bucket}", func(w http.ResponseWriter, r *http.Request) {
+			vars := mux.Vars(r)
+			bucket := vars["bucket"]
 
-		err := r.ParseMultipartForm(32 << 20) // maxMemory 32MB
+			bytes, err := awsClient.ListBucketObjects(r.Context(), &bucket)
 
-		if err != nil {
-			log.Printf("error parsing request: %v", err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
-		f, h, err := r.FormFile("file")
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write(bytes)
+		}).Methods("GET").Name("listBucketObjects")
 
-		if err != nil {
-			log.Printf("error parsing request: %v", err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+		m.HandleFunc("/s3/buckets/{bucket}", func(w http.ResponseWriter, r *http.Request) {
+			vars := mux.Vars(r)
+			bucket := vars["bucket"]
 
-		bytes, err := awsClient.UploadFileToBucket(r.Context(), &bucket, &h.Filename, f)
+			err := r.ParseMultipartForm(32 << 20) // maxMemory 32MB
 
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+			if err != nil {
+				log.Printf("error parsing request: %v", err)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write(bytes)
-	}).Methods("POST", "PUT").Name("putBucketObject")
+			f, h, err := r.FormFile("file")
 
-	m.HandleFunc("/s3/buckets/{bucket}/{key}", func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		bucket, key := vars["bucket"], vars["key"]
+			if err != nil {
+				log.Printf("error parsing request: %v", err)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 
-		bytesWritten, err := awsClient.SinkFileToWriter(r.Context(), &bucket, &key, w)
+			bytes, err := awsClient.UploadFileToBucket(r.Context(), &bucket, &h.Filename, f)
 
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 
-		log.Printf("Download of \"%s\" complete. Wrote %s bytes", key, strconv.FormatInt(bytesWritten, 10))
-	}).Methods("GET").Name("getBucketObject")
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write(bytes)
+		}).Methods("POST", "PUT").Name("putBucketObject")
+
+		m.HandleFunc("/s3/buckets/{bucket}/{key}", func(w http.ResponseWriter, r *http.Request) {
+			vars := mux.Vars(r)
+			bucket, key := vars["bucket"], vars["key"]
+
+			bytesWritten, err := awsClient.SinkFileToWriter(r.Context(), &bucket, &key, w)
+
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			log.Printf("Download of \"%s\" complete. Wrote %s bytes", key, strconv.FormatInt(bytesWritten, 10))
+		}).Methods("GET").Name("getBucketObject")
+	*/
 
 	srvShutdown := make(chan bool)
 	srv := server.StartHttpServer(cfg.HTTPServerConfig, m, srvShutdown)

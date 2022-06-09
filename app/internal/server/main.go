@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/danutavadanei/localstack-go-playground/internal/config"
+	"github.com/danutavadanei/nice-lab-go/internal/config"
 	"github.com/gorilla/handlers"
 	"net/http"
 )
