@@ -13,9 +13,17 @@ const router = createRouter({
       },
     },
     {
-      path: '/:bucket',
-      name: 'show',
-      component: () => import('../views/ShowView.vue'),
+      path: '/lab/:lab',
+      name: 'connect',
+      component: () => import('../views/ConnectView.vue'),
+      meta: {
+        requiresAuth: true
+      },
+    },
+    {
+      path: '/session/:session',
+      name: 'monitor',
+      component: () => import('../views/MonitorView.vue'),
       meta: {
         requiresAuth: true
       },

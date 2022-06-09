@@ -3,8 +3,12 @@ import { createStore } from 'vuex';
 const store = createStore({
   state () {
     return {
-      loggedIn: false,
-      user: null,
+      loggedIn: true,
+      user: {
+        name: 'dan',
+        // type: 'professor',
+        type: 'student',
+      },
     }
   },
   mutations: {
