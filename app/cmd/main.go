@@ -135,6 +135,13 @@ func main() {
 		_, _ = w.Write(bytes)
 	}).Methods("GET").Name("listLabs")
 	a.HandleFunc("/sessions", func(w http.ResponseWriter, r *http.Request) {
+		user := (r.Context().Value("user")).(mysql.User)
+
+		if user.Type != mysql.Professor {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
 		sessions, err := sessionRep.ListSessions(r.Context())
 
 		if err != nil {
