@@ -28,7 +28,7 @@
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ session.lab_type }}</td>
                   <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                     <router-link :to="{ name: 'monitor', params: { session: session.id }}" class="text-indigo-600 hover:text-indigo-900">
-                      Connect
+                      Monitor
                     </router-link>
                     <button class="text-red-600 hover:text-red-600">Terminate</button>
                   </td>

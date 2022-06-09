@@ -5,37 +5,81 @@
         <h1 class="text-xl font-semibold text-gray-900">Monitoring session #{{ session }}</h1>
       </div>
     </div>
+    <div class="mt-8 flex flex-col">
+      <div id="dcv-display"></div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { inject, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import dcv from '../../public/vendor/dcvjs/dcv.js'
 
 const route = useRoute()
-const axios = inject('axios')
-const files = ref([])
 const session = route.params.session
-const file = ref(null)
-const apiBaseUrl = inject('apiBaseUrl')
-const apiEndpoint = `${apiBaseUrl}/s3/buckets/${session}`;
 
-const fetch = async () => {
-  return await axios.get(apiEndpoint)
-    .then(response => (files.value = response.data.Contents))
+let auth, connection, serverUrl
+console.log("Using NICE DCV Web Client SDK version " + dcv.version.versionStr);
+
+const onPromptCredentials = function (auth, challenge) {
+  if (challengeHasField(challenge, "username") && challengeHasField(challenge, "password")) {
+    auth.sendCredentials({username: "ubuntu", password: "rAdiC203094=0"})
+  } else {
+    console.log(challenge)
+  }
 }
 
-const onFileChange = (e) => {
-  file.value = e.target.files[0]
+const challengeHasField = function (challenge, field) {
+  return challenge.requiredCredentials.some(credential => credential.name === field);
 }
 
-// const onSubmit = async (e) => {
-//   const formData = new FormData()
-//   formData.append('file', file.value, file.value.name)
-//
-//   await axios.post(apiEndpoint, formData, { headers: { "Content-Type": "multipart/form-data" } })
-//     .then(fetch)
-// }
-//
-// onMounted(fetch)
+const onError = function (auth, error) {
+  console.log("Error during the authentication: " + error.message);
+}
+
+const onSuccess = function (auth, result) {
+  let {sessionId, authToken} = {...result[0]};
+
+  connect(sessionId, authToken);
+}
+
+const connect = function (sessionId, authToken) {
+  console.log(sessionId, authToken);
+
+  dcv.connect({
+    url: serverUrl,
+    sessionId: sessionId,
+    authToken: authToken,
+    divId: "dcv-display",
+    baseUrl: "https://nice-lab.utm.test/vendor/dcvjs",
+    callbacks: {
+      firstFrame: () => console.log("First frame received")
+    }
+  }).then(function (conn) {
+    console.log("Connection established!");
+    connection= conn;
+  }).catch(function (error) {
+    console.log("Connection failed with error " + error.message);
+  });
+}
+
+const main = function () {
+  console.log("Setting log level to INFO");
+  dcv.setLogLevel(dcv.LogLevel.INFO);
+  serverUrl = "https://ec2-44-203-45-241.compute-1.amazonaws.com:8443/";
+
+  console.log("Starting authentication with", serverUrl);
+
+  auth = dcv.authenticate(
+    serverUrl,
+    {
+      promptCredentials: onPromptCredentials,
+      error: onError,
+      success: onSuccess
+    }
+  );
+}
+
+onMounted(main)
 </script>
