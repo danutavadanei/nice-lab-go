@@ -59,3 +59,53 @@ func (rep SessionRepository) ListSessions(ctx context.Context) (sessions []Sessi
 
 	return
 }
+
+func (rep SessionRepository) GetSessionById(ctx context.Context, id uint64) (session Session, err error) {
+	var dbSes dbSession
+	var user User
+	var lab Lab
+
+	qry := `SELECT * FROM sessions WHERE id = ?`
+	row := rep.db.QueryRowxContext(ctx, qry, id)
+
+	err = row.StructScan(&dbSes)
+
+	if user, err = rep.userRep.GetUserById(ctx, dbSes.UserID); err != nil {
+		return Session{}, err
+	}
+	if lab, err = rep.labRep.GetLabById(ctx, dbSes.LabID); err != nil {
+		return Session{}, err
+	}
+
+	return Session{
+		ID:   dbSes.ID,
+		User: user,
+		Lab:  lab,
+	}, nil
+}
+
+func (rep SessionRepository) CreateSession(ctx context.Context, user User, lab Lab) (Session, error) {
+	tx, err := rep.db.Beginx()
+
+	qry := `INSERT INTO sessions (user_id, lab_id) VALUES (?, ?)`
+	qry = tx.Rebind(qry)
+
+	res, err := tx.ExecContext(ctx, qry, user.ID, lab.ID)
+
+	if err != nil {
+		return Session{}, err
+	}
+
+	id, err := res.LastInsertId()
+
+	if err != nil {
+		return Session{}, err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return Session{}, err
+	}
+
+	return rep.GetSessionById(ctx, uint64(id))
+}

@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 )
 
@@ -168,7 +169,81 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write(bytes)
 	}).Methods("GET").Name("listSessions")
+	a.HandleFunc("/labs/{id}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		id, err := strconv.ParseUint(vars["id"], 10, 64)
 
+		if err != nil {
+			log.Printf("error parsing request:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		lab, err := labRep.GetLabById(r.Context(), id)
+
+		if err != nil {
+			log.Printf("error fetching lab:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		session, err := sessionRep.CreateSession(r.Context(), r.Context().Value("user").(mysql.User), lab)
+
+		if err != nil {
+			log.Printf("error creating session:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		bytes, _ := json.Marshal(session)
+
+		_, _ = w.Write(bytes)
+	}).Methods("POST").Name("createSession")
+	a.HandleFunc("/sessions/{id}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		id, err := strconv.ParseUint(vars["id"], 10, 64)
+
+		if err != nil {
+			log.Printf("error parsing request:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		session, err := sessionRep.GetSessionById(r.Context(), id)
+
+		if err != nil {
+			log.Printf("error fetching lab:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		user := r.Context().Value("user").(mysql.User)
+
+		if session.User.ID != user.ID {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		hostname, _ := labRep.GetHostnameByUuid(r.Context(), session.Lab.UUID)
+
+		labUserName := "ubuntu"
+
+		if session.Lab.Type == mysql.Windows {
+			labUserName = "administrator"
+		}
+
+		bytes, _ := json.Marshal(struct {
+			Hostname string `json:"hostname"`
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}{
+			Hostname: hostname,
+			Username: labUserName,
+			Password: "FlSg5ZJisEecHhMvvBtBPwhjZhdfbnwYjaMR",
+		})
+
+		_, _ = w.Write(bytes)
+	}).Methods("GET").Name("getSessionInfo")
 	srvShutdown := make(chan bool)
 	srv := server.StartHttpServer(cfg.HTTPServerConfig, m, srvShutdown)
 

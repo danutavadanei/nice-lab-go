@@ -16,16 +16,19 @@ import { inject, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import dcv from '../../public/vendor/dcvjs/dcv.js'
 
+const axios = inject('axios')
 const route = useRoute()
 const lab = parseInt(route.params.lab)
+const apiBaseUrl = inject('apiBaseUrl')
+const createSessionEndpoint = `${apiBaseUrl}/v1/labs/${lab}`;
+const getSessionInfoEndpoint = `${apiBaseUrl}/v1/sessions`;
 
-
-let auth, connection, serverUrl;
+let auth, connection, serverUrl, username, password;
 console.log("Using NICE DCV Web Client SDK version " + dcv.version.versionStr);
 
 const onPromptCredentials = function (auth, challenge) {
   if (challengeHasField(challenge, "username") && challengeHasField(challenge, "password")) {
-    auth.sendCredentials({username: (lab === 1 ? "administrator" : "ubuntu"), password: "rAdiC203094=0"})
+    auth.sendCredentials({ username, password })
   } else {
     console.log(challenge)
   }
@@ -68,12 +71,6 @@ const connect = function (sessionId, authToken) {
 const main = function () {
   console.log("Setting log level to INFO");
   dcv.setLogLevel(dcv.LogLevel.INFO);
-  if (lab === 1) {
-    serverUrl = "https://ec2-3-86-92-97.compute-1.amazonaws.com:8443/";
-  } else if (lab === 2) {
-    serverUrl = "https://ec2-18-208-169-232.compute-1.amazonaws.com:8443/";
-  }
-
   console.log("Starting authentication with", serverUrl);
 
   auth = dcv.authenticate(
@@ -86,5 +83,14 @@ const main = function () {
   );
 }
 
-onMounted(main)
+onMounted(async () => {
+  let response = await axios.post(createSessionEndpoint)
+  const sessionId = response.data.id
+  response = await axios.get(getSessionInfoEndpoint + '/' + sessionId)
+  username = response.data.username
+  password = response.data.password
+  serverUrl = `https://${response.data.hostname}:8443/`
+
+  main()
+})
 </script>

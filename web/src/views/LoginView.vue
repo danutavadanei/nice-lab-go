@@ -33,13 +33,12 @@
 <script setup>
 import { reactive, inject } from 'vue'
 import { LockClosedIcon } from '@heroicons/vue/solid'
-import axios from 'axios'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 
 const store = useStore()
 const router = useRouter()
-// const axios = inject('axios')
+const axios = inject('axios')
 const apiBaseUrl = inject('apiBaseUrl')
 const apiEndpoint = `${apiBaseUrl}/login`;
 
