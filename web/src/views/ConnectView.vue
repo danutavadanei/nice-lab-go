@@ -69,9 +69,9 @@ const main = function () {
   console.log("Setting log level to INFO");
   dcv.setLogLevel(dcv.LogLevel.INFO);
   if (lab === 1) {
-    serverUrl = "https://ec2-3-94-101-59.compute-1.amazonaws.com:8443/";
+    serverUrl = "https://ec2-3-86-92-97.compute-1.amazonaws.com:8443/";
   } else if (lab === 2) {
-    serverUrl = "https://ec2-44-203-45-241.compute-1.amazonaws.com:8443/";
+    serverUrl = "https://ec2-18-208-169-232.compute-1.amazonaws.com:8443/";
   }
 
   console.log("Starting authentication with", serverUrl);
