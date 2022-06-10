@@ -219,7 +219,7 @@ func main() {
 
 		user := r.Context().Value("user").(mysql.User)
 
-		if session.User.ID != user.ID {
+		if session.User.ID != user.ID && user.Type != mysql.Professor {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
