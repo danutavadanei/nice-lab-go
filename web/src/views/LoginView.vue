@@ -67,6 +67,7 @@ const login = async function () {
   store.commit('setUser', response.data.user)
   store.commit('setToken', response.data.token)
 
+  axios.defaults.headers.common['X-Session-Token'] = store.getters.token
   await router.push({name: 'home'})
 }
 

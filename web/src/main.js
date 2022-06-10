@@ -10,6 +10,8 @@ const app = createApp(App)
 app.use(store)
 app.use(router)
 
+axios.defaults.headers.common['X-Session-Token'] = store.getters.token
+
 app.use(VueAxios, axios)
 app.provide('axios', app.config.globalProperties.axios)
 app.provide('apiBaseUrl', import.meta.env.VITE_API_BASE_URL)

@@ -22,7 +22,12 @@ const store = createStore({
     },
     setToken (state, token) {
       state.token = token
-    }
+    },
+    logout (state) {
+      state.loggedIn = false
+      state.user = {}
+      state.token = null
+    },
   },
   getters: {
     isLoggedIn: (state) => state.loggedIn,

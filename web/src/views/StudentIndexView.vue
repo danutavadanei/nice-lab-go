@@ -48,16 +48,13 @@ import { reactive, inject, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 
 const axios = inject('axios')
-const labs = reactive([
-  { id: 1, name: 'windows lab with vs code', type: 'windows', available: true },
-  { id: 2, name: 'kali lab', type: 'kali', available: true },
-])
+const labs = reactive([])
 const apiBaseUrl = inject('apiBaseUrl')
-const apiEndpoint = `${apiBaseUrl}/s3/buckets`;
+const apiEndpoint = `${apiBaseUrl}/v1/labs`;
 
-// onMounted(async () => {
-//   await axios.get(apiEndpoint)
-//     .then(response => buckets.push(...response.data.Buckets))
-// })
+onMounted(async () => {
+  await axios.get(apiEndpoint)
+    .then(response => labs.push(...response.data))
+})
 
 </script>

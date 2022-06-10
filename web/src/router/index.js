@@ -28,24 +28,34 @@ const router = createRouter({
         requiresAuth: true
       },
     },
-      {
+    {
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue')
+    },
+    {
+      path: '/logout',
+      name: 'logout',
     }
   ]
 })
 
 router.beforeEach((to, from, next) => {
-  if (to.matched.some(record => record.meta.requiresAuth)) {
-    if (!store.getters.isLoggedIn) {
-      next({ name: 'login' })
-    } else {
-      next()
-    }
-  } else {
-    next()
+  if (to.name === 'logout') {
+    store.commit('logout')
+    next({ name: 'login' })
+    return
   }
+
+  if (
+    to.matched.some(record => record.meta.requiresAuth)
+    && !store.getters.isLoggedIn
+  ) {
+    next({name: 'login'})
+    return
+  }
+
+  next()
 })
 
 export default router
