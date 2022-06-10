@@ -12,7 +12,10 @@ func StartHttpServer(cfg config.HTTPServerConfig, router http.Handler, shutdown 
 		ReadTimeout:  cfg.ReadTimeout,
 		WriteTimeout: cfg.WriteTimeout,
 		IdleTimeout:  cfg.IdleTimeout,
-		Handler:      handlers.CORS(handlers.AllowedOrigins([]string{"*"}))(router),
+		Handler: handlers.CORS(
+			handlers.AllowedOrigins([]string{"*"}),
+			handlers.AllowedHeaders([]string{"X-Session-Token"}),
+		)(router),
 	}
 
 	go func() {

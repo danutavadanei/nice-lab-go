@@ -53,12 +53,14 @@ func (rep AuthTokenRepository) ListTokenUsers(ctx context.Context) (map[string]U
 func (rep AuthTokenRepository) NewTokenForUserId(ctx context.Context, id uint64) (token string, err error) {
 	tx, err := rep.db.Beginx()
 
-	qry := `DELETE FROM auth_tokens WHERE user_id = ?`
-	if _, err = rep.db.ExecContext(ctx, qry, id); err != nil {
-		return
-	}
+	/*
+		qry := `DELETE FROM auth_tokens WHERE user_id = ?`
+		if _, err = rep.db.ExecContext(ctx, qry, id); err != nil {
+			return
+		}
+	*/
 
-	qry = `INSERT INTO auth_tokens (user_id, token, expire_at) VALUES (?, ?, ?)`
+	qry := `INSERT INTO auth_tokens (user_id, token, expire_at) VALUES (?, ?, ?)`
 	qry = tx.Rebind(qry)
 
 	var u uuid.UUID

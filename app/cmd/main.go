@@ -92,9 +92,16 @@ func main() {
 		_, _ = w.Write(bytes)
 	}).Methods("POST").Name("login")
 
-	a := m.PathPrefix("/").Subrouter()
+	a := m.PathPrefix("/v1").Subrouter()
 	a.Use(authMiddleware.Middleware)
 	a.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
+		user := (r.Context().Value("user")).(mysql.User)
+
+		if user.Type != mysql.Professor {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
 		users, err := userRep.ListUsers(r.Context())
 
 		if err != nil {
