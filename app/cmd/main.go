@@ -299,10 +299,10 @@ func initLabForUserWindows(ctx context.Context, client *ssm.Client, lab *mysql.L
 	documentName := "AWS-RunPowerShellScript"
 
 	commands := []string{
-		fmt.Sprintf("New-LocalUser -Name \"%s\" -NoPasswd -FullName \"%s\"", user.UserName, user.UserName),
+		fmt.Sprintf("New-LocalUser -Name \"%s\" -NoPassword -FullName \"%s\"", user.UserName, user.UserName),
 		fmt.Sprintf("net user \"%s\" \"%s\"", user.UserName, tempPassword),
 		fmt.Sprintf(
-			"C:\\Program Files\\NICE\\DCV\\Server\\bin\\dcv.exe create-session --owner=%s %s",
+			".\"C:\\Program Files\\NICE\\DCV\\Server\\bin\\dcv.exe\" create-session --owner=%s %s",
 			user.UserName,
 			user.UserName,
 		),
