@@ -8,13 +8,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-func NewAWSConfig(v *viper.Viper) (cfg aws.Config, err error) {
+func NewAWSConfig(v *viper.Viper) *aws.Config {
 	v.SetDefault("AWS_REGION", "us-east-1")
 	v.SetDefault("AWS_ACCESS_KEY_ID", "key")
 	v.SetDefault("AWS_SECRET_ACCESS_KEY", "secret")
 	v.SetDefault("AWS_S3_DEFAULT_BUCKET", "default-bucket")
 
-	cfg, err = config.LoadDefaultConfig(
+	cfg, err := config.LoadDefaultConfig(
 		context.TODO(),
 		config.WithCredentialsProvider(
 			credentials.NewStaticCredentialsProvider(
@@ -26,5 +26,9 @@ func NewAWSConfig(v *viper.Viper) (cfg aws.Config, err error) {
 		config.WithRegion(v.GetString("AWS_REGION")),
 	)
 
-	return
+	if err != nil {
+		panic(err)
+	}
+
+	return &cfg
 }

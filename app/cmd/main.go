@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/danutavadanei/nice-lab-go/internal/adapters/mysql"
 	"github.com/danutavadanei/nice-lab-go/internal/config"
 	"github.com/danutavadanei/nice-lab-go/internal/server"
@@ -19,13 +20,20 @@ import (
 
 func main() {
 	v := viper.New()
-	v.AutomaticEnv()
+	viper.SetConfigFile(".env")
+	_ = viper.ReadInConfig()
+	// v.AutomaticEnv()
+
 	sigChannel := make(chan os.Signal)
 	signal.Notify(sigChannel, os.Interrupt, syscall.SIGTERM)
 
 	cfg := config.NewAppConfig(v)
 
 	db, err := mysql.NewConnection(cfg.MySQLConfig)
+	if err != nil {
+		panic(err)
+	}
+
 	userRep := mysql.NewUserRepository(db)
 	labRep := mysql.NewLabRepository(db)
 	sessionRep := mysql.NewSessionRepository(db, userRep, labRep)
@@ -34,11 +42,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	authMiddleware := middleware.NewAuthenticationMiddleware(tokenUsers, authTokenRep)
 
-	if err != nil {
-		panic(err)
-	}
+	ssmClient := ssm.NewFromConfig(*cfg.AWSConfig)
 
 	m := mux.NewRouter()
 	m.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -223,9 +230,6 @@ func main() {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-
-		hostname, _ := labRep.GetHostnameByUuid(r.Context(), session.Lab.UUID)
-
 		labUserName := "ubuntu"
 
 		if session.Lab.Type == mysql.Windows {
@@ -237,13 +241,58 @@ func main() {
 			Username string `json:"username"`
 			Password string `json:"password"`
 		}{
-			Hostname: hostname,
+			Hostname: session.Lab.Hostname,
 			Username: labUserName,
 			Password: "FlSg5ZJisEecHhMvvBtBPwhjZhdfbnwYjaMR",
 		})
 
 		_, _ = w.Write(bytes)
 	}).Methods("GET").Name("getSessionInfo")
+	a.HandleFunc("/labs/{id}/status", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		id, err := strconv.ParseUint(vars["id"], 10, 64)
+
+		if err != nil {
+			log.Printf("error parsing request:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		lab, err := labRep.GetLabById(r.Context(), id)
+
+		if err != nil {
+			log.Printf("error fetching lab:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		documentName := "AWS-RunShellScript"
+		commands := []string{
+			"whoami",
+		}
+		params := &ssm.SendCommandInput{
+			DocumentName: &documentName,
+			Parameters: map[string][]string{
+				"commands": commands,
+			},
+			InstanceIds: []string{
+				lab.InstanceID,
+			},
+		}
+
+		out, err := ssmClient.SendCommand(r.Context(), params)
+
+		if err != nil {
+			log.Printf("error executing command on lab:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		bytes, _ := json.Marshal(out)
+
+		_, _ = w.Write(bytes)
+	}).Methods("GET").Name("getStatus")
+
 	srvShutdown := make(chan bool)
 	srv := server.StartHttpServer(cfg.HTTPServerConfig, m, srvShutdown)
 

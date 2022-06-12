@@ -13,11 +13,13 @@ const (
 )
 
 type Lab struct {
-	ID        uint64  `db:"id" json:"id"`
-	UUID      string  `db:"uuid" json:"uuid"`
-	Name      string  `db:"name" json:"name"`
-	Type      LabType `db:"type" json:"type"`
-	Available bool    `db:"available" json:"available"`
+	ID         uint64  `db:"id" json:"id"`
+	UUID       string  `db:"uuid" json:"uuid"`
+	Name       string  `db:"name" json:"name"`
+	Type       LabType `db:"type" json:"type"`
+	Hostname   string  `db:"hostname" json:"hostname"`
+	InstanceID string  `db:"instance_id" json:"instance_id"`
+	Available  bool    `db:"available" json:"available"`
 }
 
 type LabRepository struct {
@@ -29,26 +31,17 @@ func NewLabRepository(db *sqlx.DB) *LabRepository {
 }
 
 func (rep LabRepository) ListLabs(ctx context.Context) (result []Lab, err error) {
-	qry := `SELECT id,uuid,name,type,available FROM labs ORDER BY id ASC`
+	qry := `SELECT * FROM labs ORDER BY id ASC`
 	err = rep.db.SelectContext(ctx, &result, qry)
 
 	return
 }
 
 func (rep LabRepository) GetLabById(ctx context.Context, id uint64) (lab Lab, err error) {
-	qry := `SELECT id,uuid,name,type,available FROM labs WHERE id = ?`
+	qry := `SELECT * FROM labs WHERE id = ?`
 	row := rep.db.QueryRowxContext(ctx, qry, id)
 
 	err = row.StructScan(&lab)
-
-	return
-}
-
-func (rep LabRepository) GetHostnameByUuid(ctx context.Context, uuid string) (hostname string, err error) {
-	qry := `SELECT hostname FROM labs WHERE uuid = ?`
-	row := rep.db.QueryRowContext(ctx, qry, uuid)
-
-	err = row.Scan(&hostname)
 
 	return
 }
