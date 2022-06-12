@@ -332,6 +332,9 @@ Resources:
             systemctl daemon-reload
             systemctl enable --now dcvserver dcv-virtual-session.service
 
+            # insatall fsx driver
+            apt-get -q -y install nfs-common
+          
             # cfn-init completed so signal success or not
             python2 /usr/local/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ec2Instance --region ${AWS::Region}
       Tags:

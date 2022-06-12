@@ -237,6 +237,9 @@ Resources:
             net stop dcvserver
             net start dcvserver
             
+            @echo ** Installing FSx Driver
+            powershell -command "Install-WindowsFeature -Name NFS-Client"
+            
             cfn-signal.exe -e %errorlevel% --stack ${AWS::StackId} --resource ec2Instance --region ${AWS::Region}        
             </script>       
       Tags:

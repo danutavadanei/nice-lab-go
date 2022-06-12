@@ -306,6 +306,10 @@ func initLabForUserWindows(ctx context.Context, client *ssm.Client, lab *mysql.L
 			user.UserName,
 			user.UserName,
 		),
+		fmt.Sprintf("md \"Z:\\%s\" 2>NUL", user.UserName),
+		fmt.Sprintf("md \"Z:\\%s\\windows\" 2>NUL", user.UserName),
+		fmt.Sprintf("$shortcut=(New-Object -ComObject WScript.Shell).CreateShortcut('C:\\Users\\%s\\Desktop\\DCV-Storage.lnk');$shortcut.TargetPath='Z:\\%s\\Windows';$shortcut.Save()", user.UserName, user.UserName),
+		fmt.Sprintf("ln -s /var/fsx/%s/linux /home/%s/Desktop/NiceLabData", user.UserName, user.UserName),
 	}
 	params := &ssm.SendCommandInput{
 		DocumentName: &documentName,
@@ -378,6 +382,8 @@ func initLabForUserLinux(ctx context.Context, client *ssm.Client, lab *mysql.Lab
 			user.UserName,
 			user.UserName,
 		),
+		fmt.Sprintf("mkdir -p /var/fsx/%s/linux", user.UserName),
+		fmt.Sprintf("ln -s /var/fsx/%s/linux /home/%s/Desktop/NiceLabData", user.UserName, user.UserName),
 	}
 	params := &ssm.SendCommandInput{
 		DocumentName: &documentName,
