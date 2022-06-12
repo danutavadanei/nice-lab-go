@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/danutavadanei/nice-lab-go/internal/adapters/mysql"
 	"github.com/danutavadanei/nice-lab-go/internal/config"
 	"github.com/danutavadanei/nice-lab-go/internal/server"
 	"github.com/danutavadanei/nice-lab-go/internal/server/middleware"
 	"github.com/gorilla/mux"
+	"github.com/gosimple/slug"
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
@@ -16,13 +18,15 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
+	"time"
 )
+
+// TODO: CHANGE!
+const tempPassword = "FlSg5ZJisEecHhMvvBtBPwhjZhdfbnwYjaMR"
 
 func main() {
 	v := viper.New()
-	viper.SetConfigFile(".env")
-	_ = viper.ReadInConfig()
-	// v.AutomaticEnv()
+	v.AutomaticEnv()
 
 	sigChannel := make(chan os.Signal)
 	signal.Notify(sigChannel, os.Interrupt, syscall.SIGTERM)
@@ -194,7 +198,27 @@ func main() {
 			return
 		}
 
-		session, err := sessionRep.CreateSession(r.Context(), r.Context().Value("user").(mysql.User), lab)
+		user := r.Context().Value("user").(mysql.User)
+
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+
+		out, err := initLabForUser(
+			ctx,
+			ssmClient,
+			&lab,
+			&user,
+		)
+
+		log.Println(out)
+
+		if err != nil {
+			log.Printf("error init lab:  %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		session, err := sessionRep.CreateSession(r.Context(), user, lab)
 
 		if err != nil {
 			log.Printf("error creating session:  %v", err)
@@ -230,11 +254,6 @@ func main() {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		labUserName := "ubuntu"
-
-		if session.Lab.Type == mysql.Windows {
-			labUserName = "administrator"
-		}
 
 		bytes, _ := json.Marshal(struct {
 			Hostname string `json:"hostname"`
@@ -242,56 +261,12 @@ func main() {
 			Password string `json:"password"`
 		}{
 			Hostname: session.Lab.Hostname,
-			Username: labUserName,
-			Password: "FlSg5ZJisEecHhMvvBtBPwhjZhdfbnwYjaMR",
+			Username: slug.Make(user.Email),
+			Password: tempPassword,
 		})
 
 		_, _ = w.Write(bytes)
 	}).Methods("GET").Name("getSessionInfo")
-	a.HandleFunc("/labs/{id}/status", func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		id, err := strconv.ParseUint(vars["id"], 10, 64)
-
-		if err != nil {
-			log.Printf("error parsing request:  %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		lab, err := labRep.GetLabById(r.Context(), id)
-
-		if err != nil {
-			log.Printf("error fetching lab:  %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		documentName := "AWS-RunShellScript"
-		commands := []string{
-			"whoami",
-		}
-		params := &ssm.SendCommandInput{
-			DocumentName: &documentName,
-			Parameters: map[string][]string{
-				"commands": commands,
-			},
-			InstanceIds: []string{
-				lab.InstanceID,
-			},
-		}
-
-		out, err := ssmClient.SendCommand(r.Context(), params)
-
-		if err != nil {
-			log.Printf("error executing command on lab:  %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		bytes, _ := json.Marshal(out)
-
-		_, _ = w.Write(bytes)
-	}).Methods("GET").Name("getStatus")
 
 	srvShutdown := make(chan bool)
 	srv := server.StartHttpServer(cfg.HTTPServerConfig, m, srvShutdown)
@@ -310,5 +285,78 @@ func shutdown(server *http.Server) {
 		if err != nil {
 			log.Printf("error closing server (%s): %v", server.Addr, err)
 		}
+	}
+}
+
+func initLabForUser(ctx context.Context, client *ssm.Client, lab *mysql.Lab, user *mysql.User) (string, error) {
+	documentName := "AWS-RunShellScript"
+	userName := slug.Make(user.Email)
+	commands := []string{
+		fmt.Sprintf("adduser --gecos \"\" %s", userName),
+		fmt.Sprintf(
+			"echo \"%s:%s\" | chpasswd",
+			userName,
+			tempPassword,
+		),
+		fmt.Sprintf(
+			"/usr/bin/dcv create-session --owner=%s %s",
+			userName,
+			userName,
+		),
+	}
+	params := &ssm.SendCommandInput{
+		DocumentName: &documentName,
+		Parameters: map[string][]string{
+			"commands": commands,
+		},
+		InstanceIds: []string{
+			lab.InstanceID,
+		},
+	}
+
+	sendOut, err := client.SendCommand(ctx, params)
+
+	if err != nil {
+		return "", err
+	}
+
+	done := make(chan bool)
+	var cmdOut *ssm.GetCommandInvocationOutput
+
+	go func() {
+	loop:
+		cmdOut, err = client.GetCommandInvocation(
+			ctx,
+			&ssm.GetCommandInvocationInput{
+				CommandId:  sendOut.Command.CommandId,
+				InstanceId: &lab.InstanceID,
+			},
+		)
+
+		if err != nil {
+			done <- true
+		}
+
+		if cmdOut.ResponseCode == -1 {
+			time.Sleep(100 * time.Millisecond)
+			goto loop
+		}
+
+		done <- true
+	}()
+
+	select {
+	case <-done:
+		if err != nil {
+			return "", err
+		}
+
+		if cmdOut.ResponseCode != 0 {
+			return *cmdOut.StandardErrorContent, nil
+		}
+
+		return *cmdOut.StandardOutputContent, nil
+	case <-ctx.Done():
+		return "", ctx.Err()
 	}
 }

@@ -11,6 +11,7 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
+	github.com/gosimple/slug v1.12.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/spf13/viper v1.11.0
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
@@ -27,6 +28,7 @@ require (
 	github.com/aws/smithy-go v1.11.3 // indirect
 	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
+	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/lib/pq v1.10.0 // indirect
