@@ -14,11 +14,12 @@ const (
 )
 
 type User struct {
-	ID    uint64   `db:"id" json:"id"`
-	UUID  string   `db:"uuid" json:"uuid"`
-	Name  string   `db:"name" json:"name"`
-	Email string   `db:"email" json:"email"`
-	Type  UserType `db:"type" json:"type"`
+	ID       uint64   `db:"id" json:"id"`
+	UUID     string   `db:"uuid" json:"uuid"`
+	Name     string   `db:"name" json:"name"`
+	Email    string   `db:"email" json:"email"`
+	Type     UserType `db:"type" json:"type"`
+	UserName string   `db:"username" json:"username"`
 }
 
 type UserRepository struct {
@@ -30,14 +31,14 @@ func NewUserRepository(db *sqlx.DB) *UserRepository {
 }
 
 func (rep UserRepository) ListUsers(ctx context.Context) (result []User, err error) {
-	qry := `SELECT id,uuid,name,email,type FROM users ORDER BY id ASC`
+	qry := `SELECT id,uuid,name,email,type,username FROM users ORDER BY id ASC`
 	err = rep.db.SelectContext(ctx, &result, qry)
 
 	return
 }
 
 func (rep UserRepository) GetUserByEmail(ctx context.Context, email string) (user User, err error) {
-	qry := `SELECT id,uuid,name,email,type FROM users WHERE email = ?`
+	qry := `SELECT id,uuid,name,email,type,username FROM users WHERE email = ?`
 	row := rep.db.QueryRowxContext(ctx, qry, email)
 
 	err = row.StructScan(&user)
@@ -45,7 +46,7 @@ func (rep UserRepository) GetUserByEmail(ctx context.Context, email string) (use
 }
 
 func (rep UserRepository) GetUserById(ctx context.Context, id uint64) (user User, err error) {
-	qry := `SELECT id,uuid,name,email,type FROM users WHERE id = ?`
+	qry := `SELECT id,uuid,name,email,type,username FROM users WHERE id = ?`
 	row := rep.db.QueryRowxContext(ctx, qry, id)
 
 	err = row.StructScan(&user)

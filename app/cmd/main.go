@@ -10,7 +10,6 @@ import (
 	"github.com/danutavadanei/nice-lab-go/internal/server"
 	"github.com/danutavadanei/nice-lab-go/internal/server/middleware"
 	"github.com/gorilla/mux"
-	"github.com/gosimple/slug"
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
@@ -200,7 +199,7 @@ func main() {
 
 		user := r.Context().Value("user").(mysql.User)
 
-		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 		defer cancel()
 
 		out, err := initLabForUser(
@@ -261,7 +260,7 @@ func main() {
 			Password string `json:"password"`
 		}{
 			Hostname: session.Lab.Hostname,
-			Username: slug.Make(user.Email),
+			Username: user.UserName,
 			Password: tempPassword,
 		})
 
@@ -289,19 +288,95 @@ func shutdown(server *http.Server) {
 }
 
 func initLabForUser(ctx context.Context, client *ssm.Client, lab *mysql.Lab, user *mysql.User) (string, error) {
-	documentName := "AWS-RunShellScript"
-	userName := slug.Make(user.Email)
+	if lab.Type == mysql.Windows {
+		return initLabForUserWindows(ctx, client, lab, user)
+	}
+
+	return initLabForUserLinux(ctx, client, lab, user)
+}
+
+func initLabForUserWindows(ctx context.Context, client *ssm.Client, lab *mysql.Lab, user *mysql.User) (string, error) {
+	documentName := "AWS-RunPowerShellScript"
+
 	commands := []string{
-		fmt.Sprintf("adduser --gecos \"\" %s", userName),
+		fmt.Sprintf("New-LocalUser -Name \"%s\" -NoPasswd -FullName \"%s\"", user.UserName, user.UserName),
+		fmt.Sprintf("net user \"%s\" \"%s\"", user.UserName, tempPassword),
+		fmt.Sprintf(
+			"C:\\Program Files\\NICE\\DCV\\Server\\bin\\dcv.exe create-session --owner=%s %s",
+			user.UserName,
+			user.UserName,
+		),
+	}
+	params := &ssm.SendCommandInput{
+		DocumentName: &documentName,
+		Parameters: map[string][]string{
+			"commands": commands,
+		},
+		InstanceIds: []string{
+			lab.InstanceID,
+		},
+	}
+
+	sendOut, err := client.SendCommand(ctx, params)
+
+	if err != nil {
+		return "", err
+	}
+
+	done := make(chan bool)
+	var cmdOut *ssm.GetCommandInvocationOutput
+
+	go func() {
+	loop:
+		cmdOut, err = client.GetCommandInvocation(
+			ctx,
+			&ssm.GetCommandInvocationInput{
+				CommandId:  sendOut.Command.CommandId,
+				InstanceId: &lab.InstanceID,
+			},
+		)
+
+		if err != nil {
+			done <- true
+		}
+
+		if cmdOut.ResponseCode == -1 {
+			time.Sleep(100 * time.Millisecond)
+			goto loop
+		}
+
+		done <- true
+	}()
+
+	select {
+	case <-done:
+		if err != nil {
+			return "", err
+		}
+
+		if cmdOut.ResponseCode != 0 {
+			return *cmdOut.StandardErrorContent, nil
+		}
+
+		return *cmdOut.StandardOutputContent, nil
+	case <-ctx.Done():
+		return "", ctx.Err()
+	}
+}
+
+func initLabForUserLinux(ctx context.Context, client *ssm.Client, lab *mysql.Lab, user *mysql.User) (string, error) {
+	documentName := "AWS-RunShellScript"
+	commands := []string{
+		fmt.Sprintf("adduser --gecos \"\" %s", user.UserName),
 		fmt.Sprintf(
 			"echo \"%s:%s\" | chpasswd",
-			userName,
+			user.UserName,
 			tempPassword,
 		),
 		fmt.Sprintf(
 			"/usr/bin/dcv create-session --owner=%s %s",
-			userName,
-			userName,
+			user.UserName,
+			user.UserName,
 		),
 	}
 	params := &ssm.SendCommandInput{
