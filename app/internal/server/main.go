@@ -6,16 +6,18 @@ import (
 	"net/http"
 )
 
-func StartHttpServer(cfg config.HTTPServerConfig, router http.Handler, shutdown chan bool) *http.Server {
+func StartHttpServer(
+	cfg config.HTTPServerConfig,
+	router http.Handler,
+	shutdown chan bool,
+	opts ...handlers.CORSOption,
+) *http.Server {
 	srv := &http.Server{
 		Addr:         cfg.Addr,
 		ReadTimeout:  cfg.ReadTimeout,
 		WriteTimeout: cfg.WriteTimeout,
 		IdleTimeout:  cfg.IdleTimeout,
-		Handler: handlers.CORS(
-			handlers.AllowedOrigins([]string{"*"}),
-			handlers.AllowedHeaders([]string{"X-Session-Token"}),
-		)(router),
+		Handler:      handlers.CORS(opts...)(router),
 	}
 
 	go func() {

@@ -19,7 +19,7 @@ func NewProxy(targetHost string) (*httputil.ReverseProxy, error) {
 func ProxyRequestHandler(proxyPrefix string, proxy *httputil.ReverseProxy) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-		r.URL.Path = strings.TrimLeft(path, proxyPrefix)
+		r.URL.Path = strings.TrimPrefix(path, proxyPrefix)
 		proxy.ServeHTTP(w, r)
 	}
 }
