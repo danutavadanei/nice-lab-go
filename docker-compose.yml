@@ -7,11 +7,28 @@ volumes:
   db_data: {}
 
 services:
-  app:
+  gateway:
     build:
       context: .
       dockerfile: app/Dockerfile
       target: production
+    entrypoint: "/gateway"
+    networks:
+      - app-network
+  auth:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+      target: production
+    entrypoint: "/auth"
+    networks:
+      - app-network
+  pipeline:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+      target: production
+    entrypoint: "/pipeline"
     environment:
       - AWS_ENDPOINT=http://localstack:4566
     ports:
