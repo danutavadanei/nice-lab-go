@@ -12,7 +12,12 @@ services:
       context: .
       dockerfile: app/Dockerfile
       target: production
+    ports:
+      - "127.0.0.1:8080:8080"
     entrypoint: "/gateway"
+    environment:
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
+      - PIPELINE_SERVICE_URL=${PIPELINE_SERVICE_URL}
     networks:
       - app-network
   auth:
@@ -21,6 +26,12 @@ services:
       dockerfile: app/Dockerfile
       target: production
     entrypoint: "/auth"
+    environment:
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_NET=${MYSQL_NET}
+      - MYSQL_ADDR=${MYSQL_ADDR}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
     networks:
       - app-network
   pipeline:
@@ -30,9 +41,16 @@ services:
       target: production
     entrypoint: "/pipeline"
     environment:
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_NET=${MYSQL_NET}
+      - MYSQL_ADDR=${MYSQL_ADDR}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
       - AWS_ENDPOINT=http://localstack:4566
-    ports:
-      - "127.0.0.1:8080:8080"
+      - AWS_REGION=http://localstack:4566
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     networks:
       - app-network
   web:

@@ -38,8 +38,8 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	}).Methods("GET").Name("health")
 
-	m.HandleFunc("/v1/auth", proxy.ProxyRequestHandler(authProxy))
-	m.HandleFunc("/v1/pipeline", proxy.ProxyRequestHandler(pipelineProxy))
+	m.HandleFunc("/v1/auth", proxy.ProxyRequestHandler("/v1/auth", authProxy))
+	m.HandleFunc("/v1/pipeline", proxy.ProxyRequestHandler("/v1/pipeline", pipelineProxy))
 
 	srvShutdown := make(chan bool)
 	srv := server.StartHttpServer(cfg.HTTPServerConfig, m, srvShutdown)
