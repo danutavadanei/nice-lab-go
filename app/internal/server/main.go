@@ -12,12 +12,20 @@ func StartHttpServer(
 	shutdown chan bool,
 	opts ...handlers.CORSOption,
 ) *http.Server {
+	var handler http.Handler
+
+	if len(opts) > 0 {
+		handler = handlers.CORS(opts...)(router)
+	} else {
+		handler = router
+	}
+
 	srv := &http.Server{
 		Addr:         cfg.Addr,
 		ReadTimeout:  cfg.ReadTimeout,
 		WriteTimeout: cfg.WriteTimeout,
 		IdleTimeout:  cfg.IdleTimeout,
-		Handler:      handlers.CORS(opts...)(router),
+		Handler:      handler,
 	}
 
 	go func() {
