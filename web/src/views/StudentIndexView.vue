@@ -50,7 +50,7 @@ import { RouterLink } from 'vue-router'
 const axios = inject('axios')
 const labs = reactive([])
 const apiBaseUrl = inject('apiBaseUrl')
-const apiEndpoint = `${apiBaseUrl}/v1/labs`;
+const apiEndpoint = `${apiBaseUrl}/v1/pipeline/labs`;
 
 onMounted(async () => {
   await axios.get(apiEndpoint)

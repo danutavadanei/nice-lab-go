@@ -40,7 +40,7 @@ const store = useStore()
 const router = useRouter()
 const axios = inject('axios')
 const apiBaseUrl = inject('apiBaseUrl')
-const apiEndpoint = `${apiBaseUrl}/login`;
+const apiEndpoint = `${apiBaseUrl}/v1/auth/login`;
 
 const form = reactive({
   email: "danut.avadanei@s.utm.ro",

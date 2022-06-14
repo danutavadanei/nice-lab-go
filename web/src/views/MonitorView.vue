@@ -20,7 +20,7 @@ const axios = inject('axios')
 const route = useRoute()
 const session = route.params.session
 const apiBaseUrl = inject('apiBaseUrl')
-const getSessionInfoEndpoint = `${apiBaseUrl}/v1/sessions`;
+const getSessionInfoEndpoint = `${apiBaseUrl}/v1/pipeline/sessions`;
 
 let auth, connection, serverUrl, username, password;
 console.log("Using NICE DCV Web Client SDK version " + dcv.version.versionStr);
