@@ -10,13 +10,14 @@ type AppConfig struct {
 	AWSConfig        *aws.Config
 	HTTPServerConfig HTTPServerConfig
 	MySQLConfig      mysql.Config
+	GatewayConfig    GatewayConfig
 }
 
-// NewAppConfig creates a new AppConfig
 func NewAppConfig(v *viper.Viper) AppConfig {
 	return AppConfig{
 		AWSConfig:        NewAWSConfig(v),
 		HTTPServerConfig: NewHTTPServerConfig(v),
 		MySQLConfig:      NewMySQLConfig(v),
+		GatewayConfig:    NewGatewayConfig(v),
 	}
 }

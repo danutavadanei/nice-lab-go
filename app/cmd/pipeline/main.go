@@ -54,84 +54,10 @@ func main() {
 	m.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("ok"))
 	}).Methods("GET").Name("health")
-	m.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		err := r.ParseForm()
 
-		if err != nil {
-			log.Printf("error parsing form:  %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		email, password := r.FormValue("email"), r.FormValue("password")
-
-		if err := userRep.CheckUserPassword(r.Context(), email, password); err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		user, err := userRep.GetUserByEmail(r.Context(), email)
-
-		if err != nil {
-			log.Printf("error parsing form:  %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		token, err := authTokenRep.NewTokenForUserId(r.Context(), user.ID)
-
-		if err != nil {
-			log.Printf("error generating auth token:  %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		bytes, err := json.Marshal(struct {
-			User  mysql.User `json:"user"`
-			Token string     `json:"token"`
-		}{
-			User:  user,
-			Token: token,
-		})
-
-		if err != nil {
-			log.Printf("error parsing form:  %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		_, _ = w.Write(bytes)
-	}).Methods("POST").Name("login")
-
-	a := m.PathPrefix("/v1").Subrouter()
+	a := m.PathPrefix("/").Subrouter()
 	a.Use(authMiddleware.Middleware)
-	a.HandleFunc("/users", func(w http.ResponseWriter, r *http.Request) {
-		user := (r.Context().Value("user")).(mysql.User)
 
-		if user.Type != mysql.Professor {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		users, err := userRep.ListUsers(r.Context())
-
-		if err != nil {
-			log.Printf("error listing users:  %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		bytes, err := json.Marshal(users)
-
-		if err != nil {
-			log.Printf("error marshaling users:  %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write(bytes)
-	}).Methods("GET").Name("listUsers")
 	a.HandleFunc("/labs", func(w http.ResponseWriter, r *http.Request) {
 		labs, err := labRep.ListLabs(r.Context())
 
