@@ -299,17 +299,15 @@ func initLabForUserWindows(ctx context.Context, client *ssm.Client, lab *mysql.L
 	documentName := "AWS-RunPowerShellScript"
 
 	commands := []string{
-		fmt.Sprintf("New-LocalUser -Name \"%s\" -NoPassword -FullName \"%s\"", user.UserName, user.UserName),
+		fmt.Sprintf("New-LocalUser -Name \"%[1]s\" -NoPassword -FullName \"%[1]s\"", user.UserName),
 		fmt.Sprintf("net user \"%s\" \"%s\"", user.UserName, tempPassword),
 		fmt.Sprintf(
-			".\"C:\\Program Files\\NICE\\DCV\\Server\\bin\\dcv.exe\" create-session --owner=%s %s",
-			user.UserName,
+			".\"C:\\Program Files\\NICE\\DCV\\Server\\bin\\dcv.exe\" create-session --owner=%[1]s %[1]s",
 			user.UserName,
 		),
 		fmt.Sprintf("md \"Z:\\%s\" 2>NUL", user.UserName),
 		fmt.Sprintf("md \"Z:\\%s\\windows\" 2>NUL", user.UserName),
-		fmt.Sprintf("$shortcut=(New-Object -ComObject WScript.Shell).CreateShortcut('C:\\Users\\%s\\Desktop\\DCV-Storage.lnk');$shortcut.TargetPath='Z:\\%s\\Windows';$shortcut.Save()", user.UserName, user.UserName),
-		fmt.Sprintf("ln -s /var/fsx/%s/linux /home/%s/Desktop/NiceLabData", user.UserName, user.UserName),
+		fmt.Sprintf("$shortcut=(New-Object -ComObject WScript.Shell).CreateShortcut('C:\\Users\\%[1]s\\Desktop\\DCV-Storage.lnk');$shortcut.TargetPath='Z:\\%[1]s\\Windows';$shortcut.Save()", user.UserName),
 	}
 	params := &ssm.SendCommandInput{
 		DocumentName: &documentName,
@@ -377,13 +375,11 @@ func initLabForUserLinux(ctx context.Context, client *ssm.Client, lab *mysql.Lab
 			user.UserName,
 			tempPassword,
 		),
-		fmt.Sprintf(
-			"/usr/bin/dcv create-session --owner=%s %s",
-			user.UserName,
-			user.UserName,
-		),
+		fmt.Sprintf("/usr/bin/dcv create-session --owner=%[1]s %[1]s", user.UserName),
 		fmt.Sprintf("mkdir -p /var/fsx/%s/linux", user.UserName),
-		fmt.Sprintf("ln -s /var/fsx/%s/linux /home/%s/Desktop/NiceLabData", user.UserName, user.UserName),
+		fmt.Sprintf("mkdir -p /home/%s/Desktop", user.UserName),
+		fmt.Sprintf("chown -R %[1]s:%[1]s /home/%[1]s/Desktop", user.UserName),
+		fmt.Sprintf("ln -s /var/fsx/%[1]s/linux /home/%[1]s/Desktop/NiceLabData", user.UserName),
 	}
 	params := &ssm.SendCommandInput{
 		DocumentName: &documentName,
