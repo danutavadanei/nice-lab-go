@@ -25,4 +25,9 @@ docker push 483411732137.dkr.ecr.us-east-1.amazonaws.com/nice-dvc-lab/auth:lates
 docker build -f app/Dockerfile --target pipeline -t nice-dvc-lab/pipeline .
 docker tag nice-dvc-lab/pipeline:latest 483411732137.dkr.ecr.us-east-1.amazonaws.com/nice-dvc-lab/pipeline:latest
 docker push 483411732137.dkr.ecr.us-east-1.amazonaws.com/nice-dvc-lab/pipeline:latest
+
+# web frontend
+docker build -f web/Dockerfile --target production -t nice-dvc-lab/web .
+docker tag nice-dvc-lab/web:latest 483411732137.dkr.ecr.us-east-1.amazonaws.com/nice-dvc-lab/web:latest
+docker push 483411732137.dkr.ecr.us-east-1.amazonaws.com/nice-dvc-lab/web:latest
 ```
