@@ -33,3 +33,15 @@ COPY --from=build /var/app/pipeline /
 USER nobody
 
 EXPOSE 8080
+
+FROM production as auth
+
+ENTRYPOINT ["/auth"]
+
+FROM production as pipeline
+
+ENTRYPOINT ["/pipeline"]
+
+FROM production as gateway
+
+ENTRYPOINT ["/gateway"]
