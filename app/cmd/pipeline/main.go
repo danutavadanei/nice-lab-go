@@ -323,6 +323,7 @@ func initLabForUserLinux(ctx context.Context, client *ssm.Client, lab *mysql.Lab
 		return "", err
 	}
 
+	time.Sleep(100 * time.Millisecond)
 	done := make(chan bool)
 	var cmdOut *ssm.GetCommandInvocationOutput
 

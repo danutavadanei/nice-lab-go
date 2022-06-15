@@ -43,3 +43,10 @@ docker buildx build --platform linux/amd64,linux/arm64 \
   -t 483411732137.dkr.ecr.us-east-1.amazonaws.com/nice-dvc-lab/web:latest \
   .
 ```
+
+```text
+[connectivity]
+enable-quic-frontend=true
+web-x-frame-options="ALLOW-FROM https://dev6166.d2j67odfn9a2fq.amplifyapp.com"
+web-extra-http-headers=[("Content-Security-Policy", "frame-ancestors https://dev6166.d2j67odfn9a2fq.amplifyapp.com/")]
+```
