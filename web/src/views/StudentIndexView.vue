@@ -26,7 +26,7 @@
                 <tr v-for="lab in labs" :key="lab.id">
                   <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{{ lab.id }}</td>
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ lab.name }}</td>
-                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ lab.type }}</td>
+                  <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ lab.type === 'kali' ? 'linux' : 'windows' }}</td>
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{{ lab.available ? 'yes' : 'no' }}</td>
                   <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                     <router-link :to="{ name: 'connect', params: { lab: lab.id }}" class="text-indigo-600 hover:text-indigo-900">
