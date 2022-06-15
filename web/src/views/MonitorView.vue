@@ -55,7 +55,7 @@ const connect = function (sessionId, authToken) {
     sessionId: sessionId,
     authToken: authToken,
     divId: "dcv-display",
-    baseUrl: "https://nice-lab.utm.test/vendor/dcvjs",
+    baseUrl: "https://dev6166.d2j67odfn9a2fq.amplifyapp.com/vendor/dcvjs",
     callbacks: {
       firstFrame: () => console.log("First frame received")
     }
