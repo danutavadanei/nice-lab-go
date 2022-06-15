@@ -43,8 +43,8 @@ const apiBaseUrl = inject('apiBaseUrl')
 const apiEndpoint = `${apiBaseUrl}/v1/auth/login`;
 
 const form = reactive({
-  email: "danut.avadanei@s.utm.ro",
-  password: "secret",
+  email: "",
+  password: "",
 })
 
 const login = async function () {

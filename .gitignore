@@ -4,3 +4,4 @@
 /web/.env
 /.idea
 aws-utm.pem
+/web/dist.zip
