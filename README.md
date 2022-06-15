@@ -50,3 +50,7 @@ enable-quic-frontend=true
 web-x-frame-options="ALLOW-FROM https://dev6166.d2j67odfn9a2fq.amplifyapp.com"
 web-extra-http-headers=[("Content-Security-Policy", "frame-ancestors https://dev6166.d2j67odfn9a2fq.amplifyapp.com/")]
 ```
+
+https://ec2-44-203-175-167.compute-1.amazonaws.com:8443
+https://ec2-52-207-244-84.compute-1.amazonaws.com:8443
+https://ec2-54-89-176-144.compute-1.amazonaws.com:8443
