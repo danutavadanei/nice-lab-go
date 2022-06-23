@@ -268,7 +268,7 @@ func initLabForUserWindows(ctx context.Context, client *ssm.Client, lab *mysql.L
 			done <- true
 		}
 
-		if cmdOut.ResponseCode == -1 {
+		if cmdOut != nil && cmdOut.ResponseCode == -1 {
 			time.Sleep(100 * time.Millisecond)
 			goto loop
 		}
